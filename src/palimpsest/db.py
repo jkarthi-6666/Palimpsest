@@ -7,12 +7,13 @@ from uuid import UUID
 
 import psycopg
 from dotenv import load_dotenv
+from psycopg.types.json import Jsonb
 from psycopg.rows import dict_row
 
 from palimpsest.models import Event, Memory
 
 
-load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=True)
 
 
 SCHEMA_SQL = """
@@ -55,6 +56,9 @@ CREATE TABLE IF NOT EXISTS memories (
 CREATE INDEX IF NOT EXISTS memories_current_user_idx
     ON memories(user_id)
     WHERE valid_to IS NULL AND deleted_at IS NULL;
+
+-- Phase 1 stores NULL when extraction cannot establish when a fact became true.
+ALTER TABLE memories ALTER COLUMN valid_from DROP NOT NULL;
 """
 
 
@@ -121,6 +125,63 @@ def get_event(event_id: UUID) -> Event | None:
     return Event.model_validate(row) if row else None
 
 
+def insert_memory(memory: Memory) -> UUID:
+    with psycopg.connect(_database_url()) as connection:
+        connection.execute(
+            """
+            INSERT INTO memories (
+                id, content, mem_type, user_id, agent_id, session_id, org_id,
+                actor, confidence, valid_from, valid_to, observed_at,
+                superseded_by, supersede_kind, mention_count, access_count,
+                last_accessed, entities, sensitivity, source_event_ids,
+                extractor_version, deleted_at
+            )
+            VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            )
+            ON CONFLICT (id) DO NOTHING
+            """,
+            (
+                memory.id,
+                memory.content,
+                memory.mem_type.value,
+                memory.user_id,
+                memory.agent_id,
+                memory.session_id,
+                memory.org_id,
+                memory.actor,
+                memory.confidence,
+                memory.valid_from,
+                memory.valid_to,
+                memory.observed_at,
+                memory.superseded_by,
+                memory.supersede_kind,
+                memory.mention_count,
+                memory.access_count,
+                memory.last_accessed,
+                Jsonb(memory.entities),
+                memory.sensitivity,
+                memory.source_event_ids,
+                memory.extractor_version,
+                memory.deleted_at,
+            ),
+        )
+    return memory.id
+
+
+def get_memories_by_ids(memory_ids: list[UUID]) -> list[Memory]:
+    if not memory_ids:
+        return []
+    with psycopg.connect(_database_url(), row_factory=dict_row) as connection:
+        rows = connection.execute(
+            "SELECT * FROM memories WHERE id = ANY(%s)", (memory_ids,)
+        ).fetchall()
+    by_id = {row["id"]: Memory.model_validate(row) for row in rows}
+    # Qdrant's similarity order is the baseline ranking, so preserve it here.
+    return [by_id[memory_id] for memory_id in memory_ids if memory_id in by_id]
+
+
 def get_current_facts(user_id: UUID, as_of: datetime | None = None) -> list[Memory]:
     if as_of is not None and as_of.tzinfo is None:
         raise ValueError("as_of must be timezone-aware")
@@ -142,7 +203,7 @@ def get_current_facts(user_id: UUID, as_of: datetime | None = None) -> list[Memo
             WHERE user_id = %s
               AND (deleted_at IS NULL OR deleted_at > %s)
               AND observed_at <= %s
-              AND valid_from <= %s
+              AND (valid_from IS NULL OR valid_from <= %s)
               AND (valid_to IS NULL OR valid_to > %s)
             ORDER BY observed_at, id
         """

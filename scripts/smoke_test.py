@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-load_dotenv(ROOT / ".env")
+load_dotenv(ROOT / ".env", override=True)
 
 from palimpsest.db import append_event, get_event, init_schema  # noqa: E402
 from palimpsest.embeddings import embed, embedding_dimension  # noqa: E402

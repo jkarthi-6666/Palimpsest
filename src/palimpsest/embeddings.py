@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 
-load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=True)
 
 _client: OpenAI | None = None
 _dimension: int | None = None
@@ -43,6 +43,8 @@ def _load() -> None:
     _client = OpenAI(
         base_url=_required_env("NVIDIA_BASE_URL"),
         api_key=_required_env("NVIDIA_API_KEY"),
+        timeout=60.0,
+        max_retries=1,
     )
     probe = _request(["Palimpsest embedding dimension probe."], "passage")
     if not probe or not probe[0]:
