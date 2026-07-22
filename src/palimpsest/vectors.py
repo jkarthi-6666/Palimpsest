@@ -8,7 +8,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, Filter, PointIdsList, PointStruct, VectorParams
 
 
-load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=True)
 
 _client: QdrantClient | None = None
 

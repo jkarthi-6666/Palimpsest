@@ -37,7 +37,8 @@ class Memory(BaseModel):
 
     # These remain separate because valid time describes when a fact is true,
     # while observed time describes when Palimpsest learned it.
-    valid_from: AwareDatetime
+    # Phase 1 leaves valid time unknown when the conversation does not state it.
+    valid_from: AwareDatetime | None = None
     valid_to: AwareDatetime | None = None
     observed_at: AwareDatetime
 
