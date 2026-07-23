@@ -45,38 +45,21 @@ def _first_json_object(text: str) -> dict[str, Any] | None:
     cleaned = re.sub(r"^\s*```(?:json)?\s*", "", text, flags=re.IGNORECASE)
     cleaned = re.sub(r"\s*```\s*$", "", cleaned)
 
-    # A local model may add prose or examples after its answer. Parse only the first
-    # balanced object so a later brace does not invalidate an otherwise usable result.
-    start = cleaned.find("{")
-    if start < 0:
-        return None
-
-    depth = 0
-    in_string = False
-    escaped = False
-    for index in range(start, len(cleaned)):
-        character = cleaned[index]
-        if in_string:
-            if escaped:
-                escaped = False
-            elif character == "\\":
-                escaped = True
-            elif character == '"':
-                in_string = False
+    # Local models sometimes return the requested wrapper object and sometimes return
+    # its memories array directly. raw_decode also lets us ignore harmless prose after
+    # the first complete JSON value.
+    decoder = json.JSONDecoder()
+    for start, character in enumerate(cleaned):
+        if character not in "[{":
             continue
-
-        if character == '"':
-            in_string = True
-        elif character == "{":
-            depth += 1
-        elif character == "}":
-            depth -= 1
-            if depth == 0:
-                try:
-                    value = json.loads(cleaned[start : index + 1])
-                except (json.JSONDecodeError, TypeError):
-                    return None
-                return value if isinstance(value, dict) else None
+        try:
+            value, _ = decoder.raw_decode(cleaned[start:])
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if isinstance(value, dict):
+            return value
+        if isinstance(value, list):
+            return {"memories": value}
     return None
 
 
@@ -182,6 +165,7 @@ Rules:
 - mem_type must be episodic, semantic, or procedural.
 - confidence must be a number from 0 to 1.
 - Return ONLY valid JSON. Do not use Markdown fences or add explanations.
+- The top-level JSON value must be an object, never a bare array.
 - If there are no durable memories, return exactly: {{"memories":[]}}
 - Otherwise return exactly this shape:
 {{"memories":[{{"content":"...","mem_type":"semantic","actor":"user","confidence":0.9}}]}}
