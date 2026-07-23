@@ -1,9 +1,9 @@
 # Palimpsest
 
-Palimpsest is a local, from-scratch LLM memory learning project. Phase 0 contains
-only the storage, vector, remote LLM, and embedding infrastructure.
+Palimpsest is a from-scratch LLM memory system with durable storage, semantic
+retrieval, memory extraction, question answering, and evaluation.
 
-## Run Phase 0
+## Setup
 
 Prerequisites: Docker with Compose and Python 3.11 or newer.
 
@@ -21,16 +21,16 @@ python scripts/smoke_test.py
 The real `.env` is gitignored. Never commit `NVIDIA_API_KEY`. Embeddings use
 NVIDIA's OpenAI-compatible remote API; chat can use NVIDIA or a local compatible
 server. The embedding wrapper supports `passage` mode for indexed facts and
-`query` mode for user questions. A successful test finishes with `PHASE 0 OK`.
+`query` mode for user questions. A successful test finishes with `PALIMPSEST OK`.
 
 Docker publishes Palimpsest's Postgres on host port `5433`, leaving the usual
 local Postgres port `5432` available for other projects.
 
 Postgres is the source of truth: it owns the append-only event log and the
-bitemporal memory records. Qdrant is only a replaceable search index; later phases
-will store vectors there with payload IDs that point back to authoritative Postgres
-rows. This keeps semantic search fast without allowing the vector store to become a
-second, conflicting source of truth.
+bitemporal memory records. Qdrant is only a replaceable search index; vectors use
+payload IDs that point back to authoritative Postgres rows. This keeps semantic
+search fast without allowing the vector store to become a second, conflicting
+source of truth.
 
 Storage remains entirely local in Docker. NVIDIA provides embeddings. Chat
 completion can use NVIDIA or a local OpenAI-compatible server selected entirely
