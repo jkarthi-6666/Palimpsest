@@ -29,7 +29,7 @@ def main() -> None:
         user_id=uuid4(),
         session_id=uuid4(),
         actor="user",
-        text="Phase 0 smoke-test event",
+        text="Palimpsest smoke-test event",
         occurred_at=datetime.now(timezone.utc),
     )
     first_id = append_event(event)
@@ -52,9 +52,9 @@ def main() -> None:
     print(f"Embedding dimension: {dimension}")
 
     llm_response = complete("Reply with exactly: OK")
-    assert llm_response.strip(), "NVIDIA returned an empty response"
-    print(f"NVIDIA LLM response: {llm_response.strip()}")
-    print("PHASE 0 OK")
+    assert llm_response.strip(), "LLM returned an empty response"
+    print(f"LLM response: {llm_response.strip()}")
+    print("PALIMPSEST OK")
 
 
 if __name__ == "__main__":

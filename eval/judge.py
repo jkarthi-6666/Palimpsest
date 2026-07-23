@@ -32,6 +32,7 @@ def judge(question: str, gold_answer: str, predicted_answer: str) -> JudgeResult
                 predicted_answer=predicted_answer,
             ),
             max_tokens=128,
+            config_prefix="JUDGE",
         )
         cleaned = re.sub(r"^\s*```(?:json)?\s*", "", raw, flags=re.IGNORECASE)
         cleaned = re.sub(r"\s*```\s*$", "", cleaned)

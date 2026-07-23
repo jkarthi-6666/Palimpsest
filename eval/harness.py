@@ -176,6 +176,9 @@ def run(dataset: Path, limit_conversations: int | None, max_questions: int | Non
             "llm_model": os.environ.get("LLM_MODEL"),
             "llm_base_url": os.environ.get("LLM_BASE_URL")
             or os.environ.get("NVIDIA_BASE_URL"),
+            "judge_model": os.environ.get("JUDGE_MODEL"),
+            "judge_base_url": os.environ.get("JUDGE_BASE_URL")
+            or os.environ.get("NVIDIA_BASE_URL"),
             "k": 15,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "dataset": str(dataset),
